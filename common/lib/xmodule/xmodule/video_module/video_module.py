@@ -246,13 +246,13 @@ class VideoModule(VideoFields, XModule):
                 track_url = self.runtime.handler_url(self, 'transcript').rstrip('/?') + '/download'
 
         if not self.transcripts:
-            transcript_language = 'en'
+            transcript_language = u'en'
             languages = {'en': 'English'}
         else:
             if self.transcript_language in self.transcripts:
                 transcript_language = self.transcript_language
             elif self.sub:
-                transcript_language = 'en'
+                transcript_language = u'en'
             else:
                 transcript_language = sorted(self.transcripts.keys())[0]
 

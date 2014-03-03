@@ -41,7 +41,7 @@ class TestVideoYouTube(TestVideo):
             'youtube_streams': create_youtube_string(self.item_descriptor),
             'yt_test_timeout': 1500,
             'yt_test_url': 'https://gdata.youtube.com/feeds/api/videos/',
-            'transcript_language': 'en',
+            'transcript_language': u'en',
             'transcript_languages': '{"en": "English", "uk": "Ukrainian"}',
             'transcript_translation_url': self.item_descriptor.xmodule_runtime.handler_url(
                 self.item_descriptor, 'transcript'
@@ -103,7 +103,7 @@ class TestVideoNonYouTube(TestVideo):
             'autoplay': settings.FEATURES.get('AUTOPLAY_VIDEOS', True),
             'yt_test_timeout': 1500,
             'yt_test_url': 'https://gdata.youtube.com/feeds/api/videos/',
-            'transcript_language': 'en',
+            'transcript_language': u'en',
             'transcript_languages': '{"en": "English"}',
             'transcript_translation_url': self.item_descriptor.xmodule_runtime.handler_url(
                 self.item_descriptor, 'transcript'
@@ -140,6 +140,7 @@ class TestGetHtmlMethod(BaseTestXmodule):
                 <source src="example.mp4"/>
                 <source src="example.webm"/>
                 {track}
+                {transcripts}
             </video>
         """
 
@@ -149,24 +150,35 @@ class TestGetHtmlMethod(BaseTestXmodule):
                 'track': u'<track src="http://www.example.com/track"/>',
                 'sub': u'a_sub_file.srt.sjson',
                 'expected_track_url': u'http://www.example.com/track',
+                'transcripts': '' ,
             },
             {
                 'download_track': u'true',
                 'track': u'',
                 'sub': u'a_sub_file.srt.sjson',
                 'expected_track_url': u'a_sub_file.srt.sjson',
+                'transcripts': '' ,
             },
             {
                 'download_track': u'true',
                 'track': u'',
                 'sub': u'',
-                'expected_track_url': None
+                'expected_track_url': None,
+                'transcripts': '' ,
             },
             {
                 'download_track': u'false',
                 'track': u'<track src="http://www.example.com/track"/>',
                 'sub': u'a_sub_file.srt.sjson',
                 'expected_track_url': None,
+                'transcripts': '' ,
+            },
+            {
+                'download_track': u'true',
+                'track': u'',
+                'sub': u'',
+                'expected_track_url': u'a_sub_file.srt.sjson',
+                'transcripts': '<transcript language="uk" src="ukrainian.srt" />',
             },
         ]
 
@@ -197,7 +209,8 @@ class TestGetHtmlMethod(BaseTestXmodule):
             DATA = SOURCE_XML.format(
                 download_track=data['download_track'],
                 track=data['track'],
-                sub=data['sub']
+                sub=data['sub'],
+                transcripts=data['transcripts'],
             )
 
             self.initialize_module(data=DATA)
@@ -208,8 +221,8 @@ class TestGetHtmlMethod(BaseTestXmodule):
             context = self.item_descriptor.render('student_view').content
 
             expected_context.update({
-                'transcript_languages': '{"en": "English"}',
-                'transcript_language': 'en',
+                'transcript_languages': '{"en": "English"}'  if not data['transcripts'] else '{"uk": "Ukrainian"}',
+                'transcript_language': u'en' if not data['transcripts'] or data.get('sub') else u'uk',
                 'transcript_translation_url': self.item_descriptor.xmodule_runtime.handler_url(
                     self.item_descriptor, 'transcript'
                 ).rstrip('/?') + '/translation',
@@ -305,7 +318,7 @@ class TestGetHtmlMethod(BaseTestXmodule):
             'autoplay': settings.FEATURES.get('AUTOPLAY_VIDEOS', True),
             'yt_test_timeout': 1500,
             'yt_test_url': 'https://gdata.youtube.com/feeds/api/videos/',
-            'transcript_language': 'en',
+            'transcript_language': u'en',
             'transcript_languages': '{"en": "English"}',
         }
 
