@@ -171,7 +171,7 @@ class TestVideoTranscriptTranslation(TestVideo):
         response = self.item.transcript(request=request, dispatch='download')
         self.assertEqual(response.status, '404 Not Found')
 
-    @patch('xmodule.video_module.VideoModule.get_transcript', return_value='Subs!')
+    @patch('xmodule.video_module.VideoModule.get_transcript', return_value=('Subs!', 'video_id'))
     def test_download_exist(self, __):
         request = Request.blank('/download?language=en')
         response = self.item.transcript(request=request, dispatch='download')
@@ -303,7 +303,7 @@ class TestVideoTranscriptsDownload(TestVideo):
 
         _upload_sjson_file(good_sjson, self.item.location)
         self.item.sub = _get_subs_id(good_sjson.name)
-        text = self.item.get_transcript()
+        text, filename = self.item.get_transcript()
         expected_text = textwrap.dedent("""\
             0
             00:00:00,270 --> 00:00:02,720
@@ -316,6 +316,7 @@ class TestVideoTranscriptsDownload(TestVideo):
             """)
 
         self.assertEqual(text, expected_text)
+        self.assertEqual(filename, self.item.sub)
 
     def test_not_found_error(self):
         with self.assertRaises(NotFoundError):
