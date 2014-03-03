@@ -745,15 +745,15 @@ def login_user(request, error=""):
     # see if the user must reset his/her password due to any policy settings
     if PasswordHistory.should_user_reset_password_now(user_found_by_email_lookup):
         # If so, then email then don't log them in and send them a password reset email
-        form = PasswordResetFormNoActive(request.POST)
-        form.email = user_found_by_email_lookup.email
-        form.save(use_https=request.is_secure(),
-                  from_email=settings.DEFAULT_FROM_EMAIL,
-                  request=request,
-                  domain_override=request.get_host())
+        # form = PasswordResetFormNoActive(request.GET)
+        # form.email = user_found_by_email_lookup.email
+        # form.save(use_https=request.is_secure(),
+        #          from_email=settings.DEFAULT_FROM_EMAIL,
+        #          request=request,
+        #          domain_override=request.get_host())
         return JsonResponse({
             "success": False,
-            "value": _('Your password has expired due to password policy on this account. You must reset your password before you can log in again. An email has been sent to the email associated with this account, please follow the instructions that are contained in that email.'),
+            "value": _('Your password has expired due to password policy on this account. You must reset your password before you can log in again. Please click the "Forgot Password" link on this page to reset your password before logging in again.'),
         })  # TODO: this should be status code 429  # pylint: disable=fixme
 
     # if the user doesn't exist, we want to set the username to an invalid
@@ -976,11 +976,6 @@ def _do_create_account(post_vars):
     user.set_password(post_vars['password'])
     registration = Registration()
 
-    # add this account creation to password history
-    # NOTE, this will be a NOP unless the feature has been turned on in configuration
-    password_history_entry = PasswordHistory()
-    password_history_entry.create(user)
-
     # TODO: Rearrange so that if part of the process fails, the whole process fails.
     # Right now, we can have e.g. no registration e-mail sent out and a zombie account
     try:
@@ -999,6 +994,11 @@ def _do_create_account(post_vars):
             return JsonResponse(js, status=400)
 
         raise
+
+    # add this account creation to password history
+    # NOTE, this will be a NOP unless the feature has been turned on in configuration
+    password_history_entry = PasswordHistory()
+    password_history_entry.create(user)
 
     registration.register(user)
 
