@@ -242,7 +242,7 @@ class VideoModule(VideoFields, XModule):
         if self.download_track:
             if self.track:
                 track_url = self.track
-            elif self.sub:
+            elif self.sub or self.transcripts:
                 track_url = self.runtime.handler_url(self, 'transcript').rstrip('/?') + '/download'
 
         if not self.transcripts:
