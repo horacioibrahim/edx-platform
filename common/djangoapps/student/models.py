@@ -33,6 +33,8 @@ from django_countries import CountryField
 from track import contexts
 from track.views import server_track
 from eventtracking import tracker
+from importlib import import_module
+SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
 from course_modes.models import CourseMode
 import lms.lib.comment_client as cc
@@ -231,6 +233,21 @@ class UserProfile(models.Model):
     def set_meta(self, js):
         self.meta = json.dumps(js)
 
+    def set_login_session(self, session_id=None):
+        """
+        Sets the current session id for the logged-in user.
+        If session_id doesn't match the existing session,
+        deletes the old session object.
+        """
+        meta = self.get_meta()
+        old_login = meta.get('session_id', None)
+        if old_login:
+            s = SessionStore(session_key=old_login)
+            s.delete()
+        meta['session_id'] = session_id
+        self.set_meta(meta)
+        self.save()
+
 
 def unique_id_for_user(user):
     """
@@ -282,7 +299,6 @@ class PendingEmailChange(models.Model):
     user = models.OneToOneField(User, unique=True, db_index=True)
     new_email = models.CharField(blank=True, max_length=255, db_index=True)
     activation_key = models.CharField(('activation key'), max_length=32, unique=True, db_index=True)
-
 
 
 EVENT_NAME_ENROLLMENT_ACTIVATED = 'edx.course.enrollment.activated'
@@ -374,7 +390,6 @@ class CourseEnrollment(models.Model):
     # Represents the modes that are possible. We'll update this later with a
     # list of possible values.
     mode = models.CharField(default="honor", max_length=100)
-
 
     class Meta:
         unique_together = (('user', 'course_id'),)
@@ -858,3 +873,18 @@ def log_successful_logout(sender, request, user, **kwargs):
         AUDIT_LOG.info(u"Logout - user.id: {0}".format(request.user.id))
     else:
         AUDIT_LOG.info(u"Logout - {0}".format(request.user))
+
+
+@receiver(user_logged_in)
+@receiver(user_logged_out)
+def enforce_single_login(sender, request, user, signal, **kwargs):
+    """
+    Sets the current session id in the user profile,
+    to prevent concurrent logins.
+    """
+    if settings.FEATURES.get('PREVENT_CONCURRENT_LOGINS', False):
+        if signal == user_logged_in:
+            key = request.session.session_key
+        else:
+            key = None
+        user.profile.set_login_session(key)

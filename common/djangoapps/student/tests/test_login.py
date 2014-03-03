@@ -179,6 +179,21 @@ class LoginTest(TestCase):
         response, _audit_log = self._login_response('test@edx.org', 'wrong_password')
         self._assert_response(response, success=False, value='Too many failed login attempts')
 
+    @patch.dict("django.conf.settings.FEATURES", {'PREVENT_CONCURRENT_LOGINS': True})
+    def test_single_session(self):
+        response, _ = self._login_response('test@edx.org', 'test_password')
+        self._assert_response(response, success=True)
+
+        self.assertEqual(self.user.profile.get_meta()['session_id'], self.client.session.session_key)
+
+        # second login should log out the first
+        new_client = Client()
+        response = new_client.post(self.url, {'email': 'test@edx.org', 'password': 'test_password'})
+        self._assert_response(response, success=True)
+
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 302)
+
     def _login_response(self, email, password, patched_audit_log='student.views.AUDIT_LOG'):
         ''' Post the login info '''
         post_params = {'email': email, 'password': password}
