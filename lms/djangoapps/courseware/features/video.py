@@ -311,5 +311,6 @@ def _open_menu(menu):
 def transcript_is_downloaded(_step):
     world.wait_for_ajax_complete()
     request = RequestHandler()
-    download_button_url = world.css_find('li.video-tracks a').first['href']
+    download_button_url = world.css_find('.video-tracks a').first['href']
     request.connect(download_button_url)
+    return request.status_code.is_success()
