@@ -2,6 +2,7 @@
 #pylint: disable=C0111
 
 from lettuce import world, step
+from splinter.request_handler.request_handler import RequestHandler
 import json
 from common import i_am_registered_for_the_course, section_location, visit_scenario_item
 from django.utils.translation import ugettext as _
@@ -99,6 +100,11 @@ def add_video_to_course(course, player_mode, hashes, display_name='Video'):
         'metadata': {},
     }
 
+    if player_mode == 'youtube_with_download':
+        kwargs['metadata'].update({
+            'download_track': True,
+        })
+
     if player_mode == 'html5':
         kwargs['metadata'].update({
             'youtube_id_1_0': '',
@@ -109,7 +115,8 @@ def add_video_to_course(course, player_mode, hashes, display_name='Video'):
         })
     if player_mode == 'youtube_html5':
         kwargs['metadata'].update({
-            'html5_sources': HTML5_SOURCES
+            'html5_sources': HTML5_SOURCES,
+            'download_track': True,
         })
     if player_mode == 'youtube_html5_unsupported_video':
         kwargs['metadata'].update({
@@ -299,3 +306,10 @@ def _open_menu(menu):
     world.browser.execute_script("$('{selector}').parent().addClass('open')".format(
         selector=VIDEO_MENUS[menu]
     ))
+
+@step('transcript is downloadable$')
+def transcript_is_downloaded(_step):
+    world.wait_for_ajax_complete()
+    request = RequestHandler()
+    download_button_url = world.css_find('li.video-tracks a').first['href']
+    request.connect(download_button_url)
