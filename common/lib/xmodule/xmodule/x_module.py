@@ -217,7 +217,7 @@ class XModuleMixin(XBlockMixin):
         self.save()
         return self._field_data._kvs  # pylint: disable=protected-access
 
-    def get_child_display_name(self):
+    def get_child_display_names(self):
         """
         Returns the display name of self's child.
 
@@ -226,12 +226,13 @@ class XModuleMixin(XBlockMixin):
         Has a special case for split_block, so that split_block returns the name
         of its child rather than its own name.
         """
+        display_names = []
         for child in self.get_children():
             if child.scope_ids.block_type == 'split_test':
-                return child.get_child_display_name()
+                display_names.append(child.get_children()[0].display_name)
             elif child.display_name is not None:
-                return child.display_name
-        return ''
+                display_names.append(child.display_name)
+        return "\n".join(item for item in display_names)
 
     def get_children(self):
         """Returns a list of XBlock instances for the children of
